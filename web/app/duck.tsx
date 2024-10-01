@@ -1,5 +1,6 @@
 "use client";
 
+import { Table } from "antd";
 import { useState, useEffect, SetStateAction, Dispatch } from "react";
 import * as duckdb from "@duckdb/duckdb-wasm";
 import * as arrow from "apache-arrow";
@@ -99,7 +100,6 @@ const loadData = async (
       //   Salary: new arrow.Utf8(),
       //   Department: new arrow.Utf8(),
       // },
-      
     });
 
     console.log("Data loaded successfully");
@@ -186,7 +186,11 @@ export const Duck = () => {
         {!dataFile && (
           <button onClick={() => loadFile(setDataFile)}>Upload CSV</button>
         )}
-        {schema && JSON.stringify(schema)}
+        {
+          schema && "schema loaded"
+
+          // <Table dataSource={[]} columns={Object.keys(schema)} />
+        }
         {dataFile && (
           <button onClick={() => loadData(db, dataFile, setSchema)}>
             Load Data into DuckDb

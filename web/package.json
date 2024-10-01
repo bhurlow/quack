@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/nextjs-registry": "^1.0.1",
     "@duckdb/duckdb-wasm": "1.28.1-dev106.0",
+    "antd": "^5.21.2",
     "apache-arrow": "^17.0.0",
     "next": "14.2.13",
     "react": "^18",
