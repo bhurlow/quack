@@ -28,6 +28,7 @@ export const QueryInput: FC<QueryInputProps> = ({ db }) => {
 
   return (
     <div>
+      
       <textarea
         value={query}
         onChange={handleQueryChange}

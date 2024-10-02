@@ -1,11 +1,15 @@
 "use client";
 
+// ConfigProvider
+import { Button, ConfigProvider, Input, Space, theme } from "antd";
+
 import { useState, useEffect, SetStateAction, Dispatch } from "react";
 import * as duckdb from "@duckdb/duckdb-wasm";
 import * as arrow from "apache-arrow";
 
 import { SchemaView } from "@/src/components/schema";
 import { QueryInput } from "@/src/components/query-input";
+import { LLMInput } from "@/src/components/llm-input";
 
 // @ts-expect-error can't import
 import duckdb_wasm from "@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm";
@@ -148,36 +152,38 @@ export const Duck = () => {
   }
 
   return (
-    <div>
-      <h4>Db Ready</h4>
-      <div>{dataFile ? `${dataFile.length} chars` : "No File Selected"}</div>
+    <ConfigProvider
+      theme={{
+        // 1. Use dark algorithm
+        algorithm: theme.darkAlgorithm,
+
+        // 2. Combine dark algorithm and compact algorithm
+        // algorithm: [theme.darkAlgorithm, theme.compactAlgorithm],
+      }}
+    >
       <div>
-        {!dataFile && (
-          <button onClick={() => loadFile(setDataFile)}>Upload CSV</button>
-        )}
-        {isDataLoaded && <SchemaView db={db} />}
-        {isDataLoaded && <QueryInput db={db} />}
-        {dataFile && (
-          <button onClick={() => loadData(db, dataFile, setIsDataLoaded)}>
-            Load Data into DuckDb
-          </button>
-        )}
+        <h4>Db Ready</h4>
+        <div>{dataFile ? `${dataFile.length} chars` : "No File Selected"}</div>
+        <div>
+          {!dataFile && (
+            <button onClick={() => loadFile(setDataFile)}>Upload CSV</button>
+          )}
+
+          <Space direction="vertical" size="middle" style={{ display: "flex" }}>
+            {isDataLoaded && <SchemaView db={db} />}
+            {/* {isDataLoaded && <QueryInput db={db} />} */}
+            {isDataLoaded && <LLMInput db={db} />}
+            {dataFile && (
+              <button onClick={() => loadData(db, dataFile, setIsDataLoaded)}>
+                Load Data into DuckDb
+              </button>
+            )}
+          </Space>
+        </div>
+        <div>
+          <button onClick={() => testQuery(db)}>Test Query</button>
+        </div>
       </div>
-      <div>
-        <button onClick={() => testQuery(db)}>Test Query</button>
-      </div>
-    </div>
+    </ConfigProvider>
   );
 };
-
-// // Select a bundle based on browser checks
-// const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
-
-// // Instantiate the asynchronus version of DuckDB-Wasm
-// const worker = new Worker(bundle.mainWorker!);
-
-// const logger = new duckdb.ConsoleLogger();
-
-// const db = new duckdb.AsyncDuckDB(logger, worker);
-
-// await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
