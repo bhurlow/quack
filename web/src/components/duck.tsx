@@ -5,6 +5,7 @@ import * as duckdb from "@duckdb/duckdb-wasm";
 import * as arrow from "apache-arrow";
 
 import { SchemaView } from "@/src/components/schema";
+import { QueryInput } from "@/src/components/query-input";
 
 // @ts-expect-error can't import
 import duckdb_wasm from "@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm";
@@ -155,6 +156,7 @@ export const Duck = () => {
           <button onClick={() => loadFile(setDataFile)}>Upload CSV</button>
         )}
         {isDataLoaded && <SchemaView db={db} />}
+        {isDataLoaded && <QueryInput db={db} />}
         {dataFile && (
           <button onClick={() => loadData(db, dataFile, setIsDataLoaded)}>
             Load Data into DuckDb

@@ -1,5 +1,5 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
-import { FC, useEffect } from "react";
+import { FC, useEffect, useState } from "react";
 
 // // Query the inferred schema
 
@@ -24,13 +24,17 @@ import { FC, useEffect } from "react";
 
 // const [schema, setSchema] = useState<Record<string, string>>({});
 
-// import { Table } from "antd";
+import { Table } from "antd";
 
 export interface SchemaViewProps {
   db: duckdb.AsyncDuckDB;
 }
 
 export const SchemaView: FC<SchemaViewProps> = ({ db }) => {
+  const [schemaData, setSchemaData] = useState<
+    Array<{ columnName: string; dataType: string }>
+  >([]);
+
   useEffect(() => {
     const fetchSchema = async () => {
       console.log("load schema");
@@ -42,16 +46,47 @@ export const SchemaView: FC<SchemaViewProps> = ({ db }) => {
         WHERE table_name = 'user_data'
       `);
 
-      const schemaInfo = schemaQuery.toArray().reduce((acc, row) => {
-        acc[row.column_name] = row.data_type;
-        return acc;
-      }, {});
+      const schemaInfo = schemaQuery.toArray().map((row) => ({
+        columnName: row.column_name,
+        dataType: row.data_type,
+      }));
 
+      setSchemaData(schemaInfo);
       console.log("schema info", schemaInfo);
     };
 
     fetchSchema().catch(console.error);
-  });
+  }, [db]);
 
-  return <h1> SCHEMA VIEW </h1>;
+  const columns = [
+    {
+      title: "Name",
+      dataIndex: "columnName",
+      key: "columnName",
+    },
+    {
+      title: "Type",
+      dataIndex: "dataType",
+      key: "dataType",
+    },
+  ];
+
+  return (
+    <div>
+      <h3>Schema Data</h3>
+      {schemaData.length ? (
+        // <div>schema</div>
+        <Table
+          dataSource={schemaData}
+          bordered={true}
+          columns={columns}
+          size={"small"}
+          pagination={false}
+          footer={() => "Hello"}
+        />
+      ) : (
+        <div> loading </div>
+      )}
+    </div>
+  );
 };
