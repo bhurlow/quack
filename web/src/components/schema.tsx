@@ -1,8 +1,7 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
 import { FC, useEffect, useState } from "react";
 import { getSchema } from "@/src/lib/schema";
-import { Card } from "antd";
-import { Table } from "antd";
+import { Card, Table } from "antd";
 
 export interface SchemaViewProps {
   db: duckdb.AsyncDuckDB;

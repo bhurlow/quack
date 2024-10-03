@@ -3,7 +3,7 @@ import { getSchema } from "@/src/lib/schema";
 import * as duckdb from "@duckdb/duckdb-wasm";
 import Anthropic from "@anthropic-ai/sdk";
 
-import { Button, Input, Table } from "antd";
+import { Button, Input, Table, Space } from "antd";
 
 const { TextArea } = Input;
 
@@ -123,30 +123,31 @@ export const LLMInput: FC<LLMInputProps> = ({ db }) => {
 
   return (
     <div>
-      <div>
-        <TextArea
-          rows={4}
-          placeholder="Describe the query you want to generate..."
-          value={userPrompt}
-          onChange={(e) => setUserPrompt(e.target.value)}
-        />
-        <Button type="primary" onClick={handleGenerateQuery}>
-          Generate Query
-        </Button>
-      </div>
-
-      <div>
-        <TextArea
-          rows={4}
-          value={generatedQuery}
-          onChange={(e) => setGeneratedQuery(e.target.value)}
-          placeholder="Generated SQL query will appear here"
-        />
-        <Button type="primary" onClick={handleRunQuery}>
-          Run Query
-        </Button>
-      </div>
-      {queryResult && renderQueryResult()}
+      <Space direction="vertical" size="middle" style={{ display: "flex" }}>
+        <div>
+          <TextArea
+            rows={4}
+            placeholder="Describe the query you want to generate..."
+            value={userPrompt}
+            onChange={(e) => setUserPrompt(e.target.value)}
+          />
+          <Button type="primary" onClick={handleGenerateQuery}>
+            Generate Query
+          </Button>
+        </div>
+        <div>
+          <TextArea
+            rows={4}
+            value={generatedQuery}
+            onChange={(e) => setGeneratedQuery(e.target.value)}
+            placeholder="Generated SQL query will appear here"
+          />
+          <Button type="primary" onClick={handleRunQuery}>
+            Run Query
+          </Button>
+        </div>
+        {queryResult && renderQueryResult()}
+      </Space>
     </div>
   );
 };
