@@ -1,5 +1,6 @@
 import { FC, useState } from "react";
 import { getSchema } from "@/src/lib/schema";
+import * as arrow from "apache-arrow";
 import * as duckdb from "@duckdb/duckdb-wasm";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -46,11 +47,13 @@ const generateSqlQuery = async (
 
     console.log("LLM RES", response);
 
-    // TODO
-    // fix type
-    const message = response.content[0].text;
+    const content = response.content[0];
 
-    return message;
+    if (content.type === "text") {
+      return content.text;
+    }
+
+    throw new Error("Unexpected result from LLM call");
   } catch (error) {
     console.error("Error generating SQL query:", error);
     throw error;
@@ -59,15 +62,14 @@ const generateSqlQuery = async (
 
 interface LLMInputProps {
   db: duckdb.AsyncDuckDB;
-  generateSqlQuery: (prompt: string) => Promise<string>;
 }
+
+type DuckDBValue = string | number | boolean | Date | Uint8Array | null;
 
 export const LLMInput: FC<LLMInputProps> = ({ db }) => {
   const [userPrompt, setUserPrompt] = useState("");
   const [generatedQuery, setGeneratedQuery] = useState("");
-  const [queryResult, setQueryResult] = useState<duckdb.AsyncResult | null>(
-    null
-  );
+  const [queryResult, setQueryResult] = useState<arrow.Table | null>(null);
 
   const handleGenerateQuery = async () => {
     try {
@@ -96,10 +98,12 @@ export const LLMInput: FC<LLMInputProps> = ({ db }) => {
     const firstBatch = queryResult.batches[0];
     if (!firstBatch) return <p>No results to display.</p>;
 
-    const columns = firstBatch.schema.fields.map((field) => field.name);
-    const rows = firstBatch
-      .toArray()
-      .map((row) => columns.map((col) => row[col as keyof typeof row]));
+    const columns = firstBatch.schema.fields.map((field) => ({
+      name: field.name,
+      type: field.type,
+    }));
+
+    const rows = firstBatch.toArray();
 
     return (
       <div>
@@ -107,18 +111,38 @@ export const LLMInput: FC<LLMInputProps> = ({ db }) => {
         <Table
           dataSource={rows.map((row, index) => ({
             key: index,
-            ...Object.fromEntries(columns.map((col, i) => [col, row[i]])),
+            ...Object.fromEntries(
+              columns.map((col) => [col.name, row[col.name]])
+            ),
           }))}
           columns={columns.map((col) => ({
-            title: col,
-            dataIndex: col,
-            key: col,
-            render: (text: any) => String(text),
+            title: col.name,
+            dataIndex: col.name,
+            key: col.name,
+            render: (value: DuckDBValue) => renderValue(value, col.type),
           }))}
           pagination={false}
         />
       </div>
     );
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renderValue = (value: DuckDBValue, type: any): string => {
+    console.log("render type", type);
+    if (value === null) return "NULL";
+    return String(value);
+    // switch (type) {
+    //   case DataType.Date:
+    //   case DataType.Time:
+    //   case DataType.Timestamp:
+    //   case DataType.TimestampTZ:
+    //     return value.toISOString();
+    //   case DataType.Blob:
+    //     return "<BLOB>";
+    //   default:
+    //     return String(value);
+    // }
   };
 
   return (
