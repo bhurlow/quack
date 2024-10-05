@@ -28,7 +28,7 @@ Respond with only the SQL query text itself. The result of request should always
 const generateSqlQuery = async (
   db: duckdb.AsyncDuckDB,
   prompt: string
-): Promise<string> => {
+): Promise<string | Anthropic.Messages.ToolUseBlock> => {
   const conn = await db.connect();
   const schema = await getSchema(conn);
 
@@ -43,9 +43,42 @@ const generateSqlQuery = async (
           content: `Generate a SQL query for the following request: ${prompt}`,
         },
       ],
+      tools: [
+        {
+          name: "create_pie_chart",
+          description:
+            "Create a Pie chart visualization from the result of the generated SQL Query",
+          input_schema: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description:
+                  "the raw text of the SQL query generated in the above prompt",
+              },
+              field: {
+                type: "string",
+                description: "field name for each pie chart slice",
+              },
+              value: {
+                type: "string",
+                description: "the numeric value of the slice",
+              },
+            },
+          },
+        },
+      ],
     });
 
     console.log("LLM RES", response);
+
+    const contents = response.content;
+
+    const toolRes = contents.find((x) => x.type === "tool_use");
+
+    if (toolRes) {
+      return toolRes;
+    }
 
     const content = response.content[0];
 
@@ -71,10 +104,29 @@ export const LLMInput: FC<LLMInputProps> = ({ db }) => {
   const [generatedQuery, setGeneratedQuery] = useState("");
   const [queryResult, setQueryResult] = useState<arrow.Table | null>(null);
 
+  const [visualization, setVisualization] = useState<
+    Anthropic.Messages.ToolUseBlock | undefined
+  >();
+
   const handleGenerateQuery = async () => {
     try {
-      const query = await generateSqlQuery(db, userPrompt);
-      setGeneratedQuery(query);
+      // TODO
+      // rename
+      const llmRes = await generateSqlQuery(db, userPrompt);
+
+      if (typeof llmRes === "object" && llmRes !== null) {
+        // Handle the object case
+        console.log("LLM response is an object:", llmRes);
+        if (llmRes.name === "create_pie_chart") {
+          setVisualization(llmRes);
+        }
+
+        // You might want to add more specific handling here
+        // depending on the expected structure of the object
+      } else {
+        // Handle the non-object case (likely a string)
+        setGeneratedQuery(llmRes);
+      }
     } catch (error) {
       console.error("Error generating query:", error);
     }
@@ -170,6 +222,8 @@ export const LLMInput: FC<LLMInputProps> = ({ db }) => {
             Run Query
           </Button>
         </div>
+        {/* Here we'll take the tool settings and invoke the query with the visual result */}
+        {visualization && <p>{JSON.stringify(visualization)}</p>}
         {queryResult && renderQueryResult()}
       </Space>
     </div>
