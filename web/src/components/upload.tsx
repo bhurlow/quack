@@ -1,5 +1,5 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
-import { useDuck } from "@/src/provider";
+import { useQuack } from "@/src/provider";
 import { FC, Dispatch, SetStateAction } from "react";
 import { Button, Card, message } from "antd";
 import { CheckCircle } from "lucide-react";
@@ -72,7 +72,7 @@ const handleFileUpload = async (
 };
 
 export const UploadCard: FC = () => {
-  const { db, isLoading, setIsDataLoaded, dataFile, setDataFile } = useDuck();
+  const { db, isLoading, setIsDataLoaded, dataFile, setDataFile } = useQuack();
 
   return (
     <Card title="Data" bordered={true} style={{ width: 800 }}>

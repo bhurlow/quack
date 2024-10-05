@@ -1,17 +1,34 @@
 import { FC, useState } from "react";
 import { getSchema } from "@/src/lib/schema";
+import { useQuack } from "@/src/provider";
 import * as arrow from "apache-arrow";
 import * as duckdb from "@duckdb/duckdb-wasm";
 import Anthropic from "@anthropic-ai/sdk";
+import { Card } from "antd";
+import { VictoryPie } from "victory";
 
 import { Button, Input, Table, Space } from "antd";
 
 const { TextArea } = Input;
 
+// TODO
+// we plan to move this to the API to at least not leak keys
 const anthropic = new Anthropic({
   dangerouslyAllowBrowser: true,
   apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
 });
+
+type DuckDBValue = string | number | boolean | Date | Uint8Array | null;
+
+type VizInput = {
+  field: string;
+  query: string;
+  value: string;
+};
+
+type VizToolUseBlock = Anthropic.Messages.ToolUseBlock & {
+  input: VizInput;
+};
 
 const systemPrompt = (schema: string) => `
 You are embedded in a data tool which has an instance of DuckDB loaded with the following data schema:
@@ -26,10 +43,9 @@ Respond with only the SQL query text itself. The result of request should always
 `;
 
 const generateSqlQuery = async (
-  db: duckdb.AsyncDuckDB,
+  conn: duckdb.AsyncDuckDBConnection,
   prompt: string
-): Promise<string | Anthropic.Messages.ToolUseBlock> => {
-  const conn = await db.connect();
+): Promise<string | VizToolUseBlock> => {
   const schema = await getSchema(conn);
 
   try {
@@ -77,7 +93,7 @@ const generateSqlQuery = async (
     const toolRes = contents.find((x) => x.type === "tool_use");
 
     if (toolRes) {
-      return toolRes;
+      return toolRes as VizToolUseBlock;
     }
 
     const content = response.content[0];
@@ -93,38 +109,66 @@ const generateSqlQuery = async (
   }
 };
 
-interface LLMInputProps {
-  db: duckdb.AsyncDuckDB;
-}
+// interface LLMInputProps {
+//   db: duckdb.AsyncDuckDB;
+// }
 
-type DuckDBValue = string | number | boolean | Date | Uint8Array | null;
+type PieChartData = Array<{
+  x: string;
+  y: number;
+}>;
 
-export const LLMInput: FC<LLMInputProps> = ({ db }) => {
+// const fn = (): PieChartData => {
+//   return [{x: 'foo', y: 90}]
+// }
+
+export const LLMInput: FC = () => {
+  const { conn } = useQuack();
   const [userPrompt, setUserPrompt] = useState("");
   const [generatedQuery, setGeneratedQuery] = useState("");
   const [queryResult, setQueryResult] = useState<arrow.Table | null>(null);
 
-  const [visualization, setVisualization] = useState<
-    Anthropic.Messages.ToolUseBlock | undefined
-  >();
+  // TODO
+  // need to specify a union of possible visualization types
+  const [pieChartData, setPieChartData] = useState<PieChartData | undefined>();
 
   const handleGenerateQuery = async () => {
+    if (!conn) {
+      throw new Error("no conn");
+    }
+
     try {
       // TODO
       // rename
-      const llmRes = await generateSqlQuery(db, userPrompt);
+      const llmRes = await generateSqlQuery(conn, userPrompt);
 
       if (typeof llmRes === "object" && llmRes !== null) {
         // Handle the object case
         console.log("LLM response is an object:", llmRes);
-        if (llmRes.name === "create_pie_chart") {
-          setVisualization(llmRes);
-        }
 
-        // You might want to add more specific handling here
-        // depending on the expected structure of the object
+        if (llmRes.name === "create_pie_chart") {
+          // const query = llmRes.input.query;
+          const result = await conn.query(llmRes.input.query);
+          const fieldName = llmRes.input.field;
+          const valueName = llmRes.input.value;
+
+          if (result && result.batches.length > 0) {
+            let allData: any[] = [];
+            for (const batch of result.batches) {
+              allData = allData.concat(batch.toArray());
+            }
+            const chartData = allData.map((row) => ({
+              x: String(row[fieldName]),
+              y: Number(row[valueName]),
+            }));
+
+            if (chartData.length) {
+              setPieChartData(chartData);
+            }
+          }
+        }
       } else {
-        // Handle the non-object case (likely a string)
+        // Handle the non-object case
         setGeneratedQuery(llmRes);
       }
     } catch (error) {
@@ -133,8 +177,12 @@ export const LLMInput: FC<LLMInputProps> = ({ db }) => {
   };
 
   const handleRunQuery = async () => {
+    if (!conn) {
+      throw new Error("no conn");
+    }
+
     try {
-      const conn = await db.connect();
+      // const conn = await db.connect();
       const result = await conn.query(generatedQuery);
       console.log("query result", result);
       setQueryResult(result);
@@ -222,9 +270,17 @@ export const LLMInput: FC<LLMInputProps> = ({ db }) => {
             Run Query
           </Button>
         </div>
-        {/* Here we'll take the tool settings and invoke the query with the visual result */}
-        {visualization && <p>{JSON.stringify(visualization)}</p>}
         {queryResult && renderQueryResult()}
+        {pieChartData && (
+          <Card title="Data" bordered={true} color="blue" className="bg-blue">
+            <div style={{ height: 400, position: "relative" }}>
+              <VictoryPie
+                colorScale={["tomato", "orange", "gold", "cyan", "navy"]}
+                data={pieChartData}
+              />
+            </div>
+          </Card>
+        )}
       </Space>
     </div>
   );

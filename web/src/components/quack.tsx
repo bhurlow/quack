@@ -1,14 +1,14 @@
 "use client";
 
 import { ConfigProvider, Space, theme } from "antd";
-import { DuckProvider, useDuck } from "../provider";
+import { QuackProvider, useQuack } from "../provider";
 import { SchemaView } from "@/src/components/schema";
 import { LLMInput } from "@/src/components/llm-input";
 import { SetupCard } from "@/src/components/setup";
 import { UploadCard } from "./upload";
 
-const DuckContent = () => {
-  const { db, isLoading, isDataLoaded } = useDuck();
+const QuackContent = () => {
+  const { db, isLoading, isDataLoaded } = useQuack();
 
   if (isLoading || !db) {
     return <h1 className="red text-lg"> 🦆 Loading Quack... </h1>;
@@ -21,23 +21,23 @@ const DuckContent = () => {
           <SetupCard db={db} />
           <UploadCard />
           {isDataLoaded && <SchemaView db={db} />}
-          {isDataLoaded && <LLMInput db={db} />}
+          {isDataLoaded && <LLMInput />}
         </Space>
       </div>
     </div>
   );
 };
 
-export const Duck = () => {
+export const Quack = () => {
   return (
-    <DuckProvider>
+    <QuackProvider>
       <ConfigProvider
         theme={{
           algorithm: theme.darkAlgorithm,
         }}
       >
-        <DuckContent />
+        <QuackContent />
       </ConfigProvider>
-    </DuckProvider>
+    </QuackProvider>
   );
 };
