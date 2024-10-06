@@ -26,8 +26,14 @@ type VizInput = {
   value: string;
 };
 
+type QueryInput = {
+  query: string;
+};
+
+type LLMInput = QueryInput | VizInput;
+
 type VizToolUseBlock = Anthropic.Messages.ToolUseBlock & {
-  input: VizInput;
+  input: LLMInput;
 };
 
 const systemPrompt = (schema: string) => `
@@ -61,6 +67,21 @@ const generateSqlQuery = async (
       ],
       tools: [
         {
+          name: "exec_query",
+          description:
+            "Execute the generated SQL query string and show the results to the user",
+          input_schema: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description:
+                  "the raw text of the SQL query generated in the above prompt",
+              },
+            },
+          },
+        },
+        {
           name: "create_pie_chart",
           description:
             "Create a Pie chart visualization from the result of the generated SQL Query",
@@ -87,6 +108,10 @@ const generateSqlQuery = async (
     });
 
     console.log("LLM RES", response);
+
+    // TODO
+    // need to declare the response type based on the data type here
+    // to satisy unknowns in the input API
 
     const contents = response.content;
 
@@ -145,6 +170,10 @@ export const LLMInput: FC = () => {
       if (typeof llmRes === "object" && llmRes !== null) {
         // Handle the object case
         console.log("LLM response is an object:", llmRes);
+
+        if (llmRes.name === "exec_query") {
+          setGeneratedQuery(llmRes.input.query);
+        }
 
         if (llmRes.name === "create_pie_chart") {
           // const query = llmRes.input.query;
