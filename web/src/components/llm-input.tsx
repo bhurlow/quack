@@ -176,13 +176,16 @@ export const LLMInput: FC = () => {
         }
 
         if (llmRes.name === "create_pie_chart") {
-          // const query = llmRes.input.query;
-          const result = await conn.query(llmRes.input.query);
-          const fieldName = llmRes.input.field;
-          const valueName = llmRes.input.value;
+          // TODO
+          // fix this type issue in the return result union
+          const input = llmRes.input as VizInput;
+
+          const result = await conn.query(input.query);
+          const fieldName = input.field;
+          const valueName = input.value;
 
           if (result && result.batches.length > 0) {
-            let allData: any[] = [];
+            let allData: arrow.StructRowProxy[] = [];
             for (const batch of result.batches) {
               allData = allData.concat(batch.toArray());
             }

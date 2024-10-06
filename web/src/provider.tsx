@@ -43,6 +43,7 @@ export const QuackProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Quack provider teardown");
       conn?.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
