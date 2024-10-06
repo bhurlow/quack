@@ -2,7 +2,7 @@ import { FC, useState } from "react";
 import { getSchema } from "@/src/lib/schema";
 import { useQuack } from "@/src/provider";
 import * as arrow from "apache-arrow";
-import { Card } from "antd";
+import { Card, message } from "antd";
 import { VictoryPie } from "victory";
 import { generateQuery } from "@/app/actions/generate";
 import { VizInput } from "@/src/llm/types";
@@ -78,6 +78,7 @@ export const LLMInput: FC = () => {
       }
     } catch (error) {
       console.error("Error generating query:", error);
+      message.error("Failed to load data. Please try again.");
     }
   };
 
