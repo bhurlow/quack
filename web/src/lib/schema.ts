@@ -1,6 +1,13 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
 
-export const getSchema = async (conn: duckdb.AsyncDuckDBConnection) => {
+export type Schema = {
+  columnName: string;
+  dataType: string;
+}[];
+
+export const getSchema = async (
+  conn: duckdb.AsyncDuckDBConnection
+): Promise<Schema> => {
   const schemaQuery = await conn.query(`
     SELECT column_name, data_type
     FROM information_schema.columns
