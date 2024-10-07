@@ -3,24 +3,20 @@ import { getSchema } from "@/src/lib/schema";
 import { useQuack } from "@/src/provider";
 import * as arrow from "apache-arrow";
 import { Card, message } from "antd";
-import { VictoryPie } from "victory";
+
 import { generateQuery } from "@/app/actions/generate";
 import { VizInput } from "@/src/llm/types";
+import { PieChartData, PieChart } from "@/src/components/viz/pie";
 
 import { Button, Input, Table, Space } from "antd";
-
 const { TextArea } = Input;
 
 type DuckDBValue = string | number | boolean | Date | Uint8Array | null;
 
-type PieChartData = Array<{
-  x: string;
-  y: number;
-}>;
-
 export const LLMInput: FC = () => {
   const { conn } = useQuack();
   const [userPrompt, setUserPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [generatedQuery, setGeneratedQuery] = useState("");
   const [queryResult, setQueryResult] = useState<arrow.Table | null>(null);
 
@@ -33,6 +29,7 @@ export const LLMInput: FC = () => {
       throw new Error("no conn");
     }
 
+    setIsGenerating(true);
     const schema = await getSchema(conn);
 
     try {
@@ -79,6 +76,8 @@ export const LLMInput: FC = () => {
     } catch (error) {
       console.error("Error generating query:", error);
       message.error("Failed to load data. Please try again.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -161,7 +160,11 @@ export const LLMInput: FC = () => {
             value={userPrompt}
             onChange={(e) => setUserPrompt(e.target.value)}
           />
-          <Button type="primary" onClick={handleGenerateQuery}>
+          <Button
+            type="primary"
+            onClick={handleGenerateQuery}
+            loading={isGenerating}
+          >
             Generate Query
           </Button>
         </div>
@@ -180,10 +183,7 @@ export const LLMInput: FC = () => {
         {pieChartData && (
           <Card title="Data" bordered={true} color="blue" className="bg-blue">
             <div style={{ height: 400, position: "relative" }}>
-              <VictoryPie
-                colorScale={["tomato", "orange", "gold", "cyan", "navy"]}
-                data={pieChartData}
-              />
+              <PieChart data={pieChartData} />
             </div>
           </Card>
         )}
