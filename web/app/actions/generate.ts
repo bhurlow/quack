@@ -3,7 +3,7 @@
 // import { revalidatePath } from "next/cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { Schema } from "@/src/lib/schema";
-import { VizToolUseBlock } from "@/src/llm/types";
+import { VizInput, QueryInput, ToolResult } from "@/src/llm/types";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -21,7 +21,75 @@ Generate SQL queries based on your input which may be executed on the DuckDB ins
 Respond with only the SQL query text itself. The result of request should always be valid SQL text only. 
 `;
 
-export async function generateQuery(prompt: string, schema: Schema) {
+const ExecInput: Anthropic.Messages.Tool = {
+  name: "exec_query",
+  description:
+    "Execute the generated SQL query string and show the results to the user",
+  input_schema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description:
+          "the raw text of the SQL query generated in the above prompt",
+      },
+    },
+  },
+};
+
+const PieChartInput: Anthropic.Messages.Tool = {
+  name: "create_pie_chart",
+  description:
+    "Create a Pie chart visualization from the result of the generated SQL Query",
+  input_schema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description:
+          "the raw text of the SQL query generated in the above prompt",
+      },
+      field: {
+        type: "string",
+        description: "field name for each pie chart slice",
+      },
+      value: {
+        type: "string",
+        description: "the numeric value of the slice",
+      },
+    },
+  },
+};
+
+const TimeSeriesInput: Anthropic.Messages.Tool = {
+  name: "create_timeseries",
+  description:
+    "Create a Timeseries chart visualization from the result of the generated SQL Query. Assume the x axis is a time field and the user may specify how the time values should be bucketed",
+  input_schema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description:
+          "the raw text of the SQL query generated in the above prompt",
+      },
+      field: {
+        type: "string",
+        description:
+          "The x axis value of the time series, should be time related",
+      },
+      value: {
+        type: "string",
+        description: "The y axis value of the time series",
+      },
+    },
+  },
+};
+
+export async function generateQuery(
+  prompt: string,
+  schema: Schema
+): Promise<ToolResult> {
   console.log("GENERATE QUERY ACTION ----->", prompt, schema);
 
   // TODO
@@ -38,66 +106,34 @@ export async function generateQuery(prompt: string, schema: Schema) {
         content: `Generate a SQL query for the following request: ${prompt}`,
       },
     ],
-    tools: [
-      {
-        name: "exec_query",
-        description:
-          "Execute the generated SQL query string and show the results to the user",
-        input_schema: {
-          type: "object",
-          properties: {
-            query: {
-              type: "string",
-              description:
-                "the raw text of the SQL query generated in the above prompt",
-            },
-          },
-        },
-      },
-      {
-        name: "create_pie_chart",
-        description:
-          "Create a Pie chart visualization from the result of the generated SQL Query",
-        input_schema: {
-          type: "object",
-          properties: {
-            query: {
-              type: "string",
-              description:
-                "the raw text of the SQL query generated in the above prompt",
-            },
-            field: {
-              type: "string",
-              description: "field name for each pie chart slice",
-            },
-            value: {
-              type: "string",
-              description: "the numeric value of the slice",
-            },
-          },
-        },
-      },
-    ],
+    tools: [ExecInput, PieChartInput, TimeSeriesInput],
   });
 
   console.log("LLM RES", response);
-
-  // TODO
-  // need to declare the response type based on the data type here
-  // to satisy unknowns in the input API
 
   const contents = response.content;
 
   const toolRes = contents.find((x) => x.type === "tool_use");
 
   if (toolRes) {
-    return toolRes as VizToolUseBlock;
-  }
-
-  const content = response.content[0];
-
-  if (content.type === "text") {
-    return content.text;
+    if (toolRes.name === "exec_query") {
+      return {
+        name: "exec_query",
+        input: toolRes.input as QueryInput,
+      };
+    }
+    if (toolRes.name === "create_pie_chart") {
+      return {
+        name: "create_pie_chart",
+        input: toolRes.input as VizInput,
+      };
+    }
+    if (toolRes.name === "create_timeseries") {
+      return {
+        name: "create_timeseries",
+        input: toolRes.input as VizInput,
+      };
+    }
   }
 
   throw new Error("Unexpected result from LLM call");

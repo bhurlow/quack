@@ -1,14 +1,16 @@
 import { FC, useState } from "react";
+import * as arrow from "apache-arrow";
+import { Button, Input, Table, Space, Card, message } from "antd";
+
 import { getSchema } from "@/src/lib/schema";
 import { useQuack } from "@/src/provider";
-import * as arrow from "apache-arrow";
-import { Card, message } from "antd";
-
 import { generateQuery } from "@/app/actions/generate";
-import { VizInput } from "@/src/llm/types";
 import { PieChartData, PieChart } from "@/src/components/viz/pie";
+import {
+  TimeSeriesData,
+  TimeSeriesChart,
+} from "@/src/components/viz/timeseries";
 
-import { Button, Input, Table, Space } from "antd";
 const { TextArea } = Input;
 
 type DuckDBValue = string | number | boolean | Date | Uint8Array | null;
@@ -20,9 +22,10 @@ export const LLMInput: FC = () => {
   const [generatedQuery, setGeneratedQuery] = useState("");
   const [queryResult, setQueryResult] = useState<arrow.Table | null>(null);
 
-  // TODO
-  // need to specify a union of possible visualization types
   const [pieChartData, setPieChartData] = useState<PieChartData | undefined>();
+  const [timeSeriesData, setTimeSeriesData] = useState<
+    TimeSeriesData | undefined
+  >();
 
   const handleGenerateQuery = async () => {
     if (!conn) {
@@ -46,11 +49,9 @@ export const LLMInput: FC = () => {
         }
 
         if (llmRes.name === "create_pie_chart") {
-          // TODO
-          // fix this type issue in the return result union
-          const input = llmRes.input as VizInput;
-
+          const input = llmRes.input;
           const result = await conn.query(input.query);
+
           const fieldName = input.field;
           const valueName = input.value;
 
@@ -66,6 +67,35 @@ export const LLMInput: FC = () => {
 
             if (chartData.length) {
               setPieChartData(chartData);
+            }
+          }
+        }
+
+        if (llmRes.name === "create_timeseries") {
+          const input = llmRes.input;
+          const result = await conn.query(input.query);
+
+          const dateFieldName = input.field;
+          const valueFieldName = input.value;
+
+          console.log("TIME SERIES LLM", llmRes, result);
+          // const fieldName = input.field;
+          // const valueName = input.value;
+
+          if (result && result.batches.length > 0) {
+            let allData: arrow.StructRowProxy[] = [];
+            for (const batch of result.batches) {
+              allData = allData.concat(batch.toArray());
+            }
+
+            // Map the query result to the TimeSeriesData format
+            const chartData = allData.map((row) => ({
+              x: new Date(row[dateFieldName]), // Convert to Date object
+              y: Number(row[valueFieldName]),
+            }));
+
+            if (chartData.length) {
+              setTimeSeriesData(chartData);
             }
           }
         }
@@ -87,7 +117,6 @@ export const LLMInput: FC = () => {
     }
 
     try {
-      // const conn = await db.connect();
       const result = await conn.query(generatedQuery);
       console.log("query result", result);
       setQueryResult(result);
@@ -184,6 +213,13 @@ export const LLMInput: FC = () => {
           <Card title="Data" bordered={true} color="blue" className="bg-blue">
             <div style={{ height: 400, position: "relative" }}>
               <PieChart data={pieChartData} />
+            </div>
+          </Card>
+        )}
+        {timeSeriesData && (
+          <Card title="Data" bordered={true} color="blue" className="bg-blue">
+            <div style={{ height: 400, position: "relative" }}>
+              <TimeSeriesChart data={timeSeriesData} />
             </div>
           </Card>
         )}
