@@ -120,7 +120,6 @@ export const LLMInput: FC = () => {
       const result = await conn.query(generatedQuery);
       console.log("query result", result);
       setQueryResult(result);
-      await conn.close();
     } catch (error) {
       console.error("Error running query:", error);
     }
@@ -161,9 +160,9 @@ export const LLMInput: FC = () => {
     );
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const renderValue = (value: DuckDBValue, type: any): string => {
-    console.log("render type", type);
     if (value === null) return "NULL";
     return String(value);
     // switch (type) {
