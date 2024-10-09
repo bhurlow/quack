@@ -11,6 +11,8 @@ import {
   TimeSeriesChart,
 } from "@/src/components/viz/timeseries";
 
+import { DataCard } from "@/src/components/data-card";
+
 const { TextArea } = Input;
 
 type DuckDBValue = string | number | boolean | Date | Uint8Array | null;
@@ -50,6 +52,8 @@ export const LLMInput: FC = () => {
 
         if (llmRes.name === "create_pie_chart") {
           const input = llmRes.input;
+
+          setGeneratedQuery(input.query);
           const result = await conn.query(input.query);
 
           const fieldName = input.field;
@@ -73,6 +77,7 @@ export const LLMInput: FC = () => {
 
         if (llmRes.name === "create_timeseries") {
           const input = llmRes.input;
+          setGeneratedQuery(input.query);
           const result = await conn.query(input.query);
 
           const dateFieldName = input.field;
@@ -216,11 +221,16 @@ export const LLMInput: FC = () => {
           </Card>
         )}
         {timeSeriesData && (
-          <Card title="Data" bordered={true} color="blue" className="bg-blue">
+          <DataCard
+            title="Data"
+            bordered={true}
+            color="blue"
+            query={generatedQuery}
+          >
             <div style={{ height: 400, position: "relative" }}>
               <TimeSeriesChart data={timeSeriesData} />
             </div>
-          </Card>
+          </DataCard>
         )}
       </Space>
     </div>
