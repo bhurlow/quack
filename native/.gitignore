@@ -1,0 +1,64 @@
+# Xcode
+##
+.DS_Store
+*.swp
+*.lock
+profile
+xcuserdata/
+*.moved-aside
+DerivedData/
+.idea/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+##
+.build/
+Packages/
+Package.pins
+Package.resolved
+.swiftpm
+
+# CocoaPods (if you're using it)
+##
+Pods/
+*.xcworkspace
+
+# Carthage (if you're using it)
+##
+Carthage/Build/
+
+# fastlane (if you're using it)
+##
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+##
+injected_container.swift
+
+# Environment variables
+##
+.env
+.env.*
+
+# Build products
+##
+build/
+*.o
+*.LinkFileList
+*.hmap
+
+# Playgrounds
+##
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+##
+.swiftpm/xcode/package.xcworkspace
+.swiftpm/xcode/xcuserdata/
